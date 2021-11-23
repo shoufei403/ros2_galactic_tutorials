@@ -28,13 +28,13 @@ cd galactic_ws/src
 ```
 git clone https://gitee.com/shoufei403/tn_ros2_tutorials.git
 ```
-
-编译代码(需在src的上级目录下编译)
-
+解决依赖  
+在galactic_ws目录下运行下面命令
 ```
-cd galactic_ws
+rosdep install --from-paths src --ignore-src --rosdistro galactic -yr
 ```
 
+编译代码(需在src的上级目录下编译)  
 先编译tutorial_interfaces包，因为有些包对它有依赖。
 
 ```
@@ -51,7 +51,8 @@ source install/setup.bash
 
 注意：turtlesim 包目前不会编译，因为放了COLCON_IGNORE文件在这个包里。这样做是因为系统里已经安装了这个包。这里只是用来做代码参考。
 
-
+## 运行turtlesim_controller示例
+请参考turtlesim_controller目录下的[readme.md](turtlesim_controller/readme.md)文件。
 
 ## 官方示例代码仓库的地址
 

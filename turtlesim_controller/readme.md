@@ -17,17 +17,18 @@ name: ''"
 <p align = "left">
 <img src="images/turtle_names.png" width = "485" height = "435" border="1" />
 </p>
-### 运行控制器
-新打开一个命令窗口。运行下面的命令。
+
+### 运行控制器    
+新打开一个命令窗口。运行下面的命令。    
 ```
 ros2 run turtlesim_controller turtlesim_controller_node
 ```
-新打开一个命令窗口。运行下面的命令切换乌龟行走模式。  
-向前行走两米
+新打开一个命令窗口。运行下面的命令切换乌龟行走模式。    
+向前行走两米  
 ```
 ros2 run turtlesim_controller turtlesim_controller_client 1
 ```
-左转90度
+左转90度  
 ```
 ros2 run turtlesim_controller turtlesim_controller_client 2
 ```
