@@ -22,6 +22,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Num.msg"
   "srv/AddThreeInts.srv"
   "srv/TurtleCmdMode.srv"
+  "action/GoLine.action"
  )
 
 

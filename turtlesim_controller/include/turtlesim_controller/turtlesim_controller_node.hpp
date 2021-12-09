@@ -9,14 +9,18 @@
 #include <cinttypes>
 #include <ctime>
 #include <sys/time.h>
-
+#include <thread>
 
 #include "rclcpp/rclcpp.hpp"
+// TODO(jacobperron): Remove this once it is included as part of 'rclcpp.hpp'
+#include "rclcpp_action/rclcpp_action.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/u_int8.hpp"
 #include "turtlesim/msg/pose.hpp"
 #include <geometry_msgs/msg/twist.hpp>
 #include <tutorial_interfaces/srv/turtle_cmd_mode.hpp>
+#include <tutorial_interfaces/action/go_line.hpp>
+
 
 
 enum ControlMode 
@@ -33,6 +37,8 @@ using TurtleCmdMode = tutorial_interfaces::srv::TurtleCmdMode;
 
 class TurtlesimController : public rclcpp::Node
 {
+  using GoLine = tutorial_interfaces::action::GoLine;
+  using GoalHandleGoLine = rclcpp_action::ServerGoalHandle<GoLine>;
 
 public:
   TurtlesimController();
@@ -49,8 +55,20 @@ private:
   //   const tutorial_interfaces::srv::TurtleCmdMode::Request::SharedPtr request,
   //   tutorial_interfaces::srv::TurtleCmdMode::Response::SharedPtr response);//这两种写法都可以
 
+  rclcpp_action::GoalResponse handle_goal(
+    const rclcpp_action::GoalUUID & uuid,
+    std::shared_ptr<const GoLine::Goal> goal);
+
+  rclcpp_action::CancelResponse handle_cancel(
+    const std::shared_ptr<GoalHandleGoLine> goal_handle);
+
+  void execute(const std::shared_ptr<GoalHandleGoLine> goal_handle);
+  void handle_accepted(const std::shared_ptr<GoalHandleGoLine> goal_handle);
+
+
   //判断是否到达目标点
   bool has_reached_goal();
+  bool has_reached_point(double x, double y);
 
   //linear -> x轴线速度
   //angular -> 角速度
@@ -67,17 +85,20 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr vel_cmd_publisher_;
   rclcpp::Subscription<turtlesim::msg::Pose>::SharedPtr turtlesim_pose_subscription_;
-  rclcpp::Service<tutorial_interfaces::srv::TurtleCmdMode>::SharedPtr server_;
-
+  rclcpp::Service<tutorial_interfaces::srv::TurtleCmdMode>::SharedPtr service_server_;
+  rclcpp_action::Server<tutorial_interfaces::action::GoLine>::SharedPtr action_server_;
+  
   turtlesim::msg::Pose::SharedPtr turtlesim_pose_;
   turtlesim::msg::Pose goal_;
   ControlMode cmd_mode_ = STOP;
+  bool receive_action_goal_ = false;
 
   //params
   double walk_distance_ = 2;
   int execute_frequency_ = 0;
   bool print_execute_duration_ = false;
   std::string show_str_ = "";
+  
 
   // Subscription for parameter change
   std::mutex config_mutex_;

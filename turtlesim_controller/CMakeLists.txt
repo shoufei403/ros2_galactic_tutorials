@@ -8,6 +8,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(turtlesim REQUIRED)
@@ -26,6 +27,7 @@ target_compile_features(turtlesim_controller_node PUBLIC c_std_99 cxx_std_17)  #
 ament_target_dependencies(
   turtlesim_controller_node
   "rclcpp"
+  "rclcpp_action"
   "std_msgs"
   "tutorial_interfaces"
   "turtlesim"
@@ -35,10 +37,19 @@ ament_target_dependencies(
 add_executable(turtlesim_controller_client src/turtlesim_controller_client.cpp)
 ament_target_dependencies(turtlesim_controller_client rclcpp std_msgs tutorial_interfaces)
 
+add_executable(turtlesim_controller_action_client src/turtlesim_controller_action_client.cpp)
+ament_target_dependencies(turtlesim_controller_action_client 
+rclcpp 
+rclcpp_action 
+std_msgs 
+tutorial_interfaces
+)
+
 
 install(TARGETS 
   turtlesim_controller_node
   turtlesim_controller_client
+  turtlesim_controller_action_client
   DESTINATION lib/${PROJECT_NAME})
 
 install(

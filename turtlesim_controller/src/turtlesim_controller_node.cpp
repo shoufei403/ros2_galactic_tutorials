@@ -69,14 +69,136 @@ TurtlesimController::TurtlesimController()
   turtlesim_pose_subscription_ = this->create_subscription<turtlesim::msg::Pose>(
     "turtle1/pose", 1, std::bind(&TurtlesimController::turtlesim_pose_callback, this, std::placeholders::_1));
 
-  server_ = this->create_service<TurtleCmdMode>("change_turtle_control_mode", 
+  service_server_ = this->create_service<TurtleCmdMode>("change_turtle_control_mode", 
     std::bind(&TurtlesimController::handle_turtle_control_mode_service, this, 
     std::placeholders::_1, std::placeholders::_2));
+
+  action_server_ = rclcpp_action::create_server<GoLine>(
+    this->get_node_base_interface(),
+    this->get_node_clock_interface(),
+    this->get_node_logging_interface(),
+    this->get_node_waitables_interface(),
+    "turtle_go_line",
+    std::bind(&TurtlesimController::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+    std::bind(&TurtlesimController::handle_cancel, this, std::placeholders::_1),
+    std::bind(&TurtlesimController::handle_accepted, this, std::placeholders::_1));
+
 
   std::chrono::milliseconds interval(execute_interval_ms);
   timer_ = this->create_wall_timer(
     interval, std::bind(&TurtlesimController::timer_callback, this));
     
+}
+
+
+rclcpp_action::GoalResponse TurtlesimController::handle_goal(
+  const rclcpp_action::GoalUUID & uuid,
+  std::shared_ptr<const GoLine::Goal> goal)
+{
+  RCLCPP_INFO(this->get_logger(), "Received goal {%f, %f}", goal->goal_x, goal->goal_y);
+  (void)uuid;
+  // Let's reject sequences if we close to goal
+  if (has_reached_point(goal->goal_x, goal->goal_y)) {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+  receive_action_goal_ = true;
+  goal_.theta = fmod(atan2(goal->goal_y-turtlesim_pose_->y, goal->goal_x-turtlesim_pose_->x), 2.0f * static_cast<float>(PI));
+  // wrap goal_.theta to [-pi, pi)
+  if (goal_.theta >= static_cast<float>(PI)) goal_.theta -= 2.0f * static_cast<float>(PI);
+  RCLCPP_INFO(this->get_logger(), "current theta %f goal theta %f", turtlesim_pose_->theta, goal_.theta);
+  if(fabsl(goal_.theta - turtlesim_pose_->theta) < 0.01)
+  {
+    goal_.x = goal->goal_x;
+    goal_.y = goal->goal_y;
+    goal_.theta = turtlesim_pose_->theta;
+    cmd_mode_ = FORWARD;
+  }
+  else
+  {
+    //set rotate angle
+    goal_.x = turtlesim_pose_->x;
+    goal_.y = turtlesim_pose_->y;
+    cmd_mode_ = ROTATE;
+  }
+
+  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+rclcpp_action::CancelResponse TurtlesimController::handle_cancel(
+  const std::shared_ptr<GoalHandleGoLine> goal_handle)
+{
+  RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+  (void)goal_handle;
+  return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void TurtlesimController::execute(const std::shared_ptr<GoalHandleGoLine> goal_handle)
+{
+  RCLCPP_INFO(this->get_logger(), "Executing goal");
+  rclcpp::Rate loop_rate(5);
+  const auto goal = goal_handle->get_goal();
+  auto feedback = std::make_shared<GoLine::Feedback>();
+  feedback->current_pose_x = turtlesim_pose_->x;
+  feedback->current_pose_y = turtlesim_pose_->y;
+  feedback->current_pose_theta = turtlesim_pose_->theta;
+
+  auto result = std::make_shared<GoLine::Result>();
+
+  while (rclcpp::ok()) {
+    // Check if there is a cancel request
+    if (goal_handle->is_canceling()) {
+      result->str = "Goal Canceled";
+      goal_handle->canceled(result);
+      RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+      return;
+    }
+
+    if(cmd_mode_ == ROTATE)
+    {
+      if(has_reached_goal())
+      {
+        goal_.x = goal->goal_x;
+        goal_.y = goal->goal_y;
+        goal_.theta = turtlesim_pose_->theta;
+        cmd_mode_ = FORWARD;
+      }
+      else
+      {
+        rotate();
+      }
+    }
+    else if(cmd_mode_ == FORWARD)
+    {
+      if(has_reached_point(goal->goal_x, goal->goal_y))// Check if goal is done
+      {
+        result->str = "Goal Succeeded";
+        receive_action_goal_ = false;
+        goal_handle->succeed(result);
+        RCLCPP_INFO(this->get_logger(), "Goal Succeeded");
+        stop_turtle();
+        break;
+      }
+      else
+      {
+        move_forward();
+      }
+    }
+
+    feedback->current_pose_x = turtlesim_pose_->x;
+    feedback->current_pose_y = turtlesim_pose_->y;
+    feedback->current_pose_theta = turtlesim_pose_->theta;
+    // Publish feedback
+    goal_handle->publish_feedback(feedback);
+    RCLCPP_INFO(this->get_logger(), "Publish Feedback");
+    loop_rate.sleep();
+  }
+}
+
+void TurtlesimController::handle_accepted(const std::shared_ptr<GoalHandleGoLine> goal_handle)
+{
+  using namespace std::placeholders;
+  // this needs to return quickly to avoid blocking the executor, so spin up a new thread
+  std::thread{std::bind(&TurtlesimController::execute, this, _1), goal_handle}.detach();
 }
 
 
@@ -86,6 +208,12 @@ void TurtlesimController::timer_callback()
   uint64_t now_time = getSystemTimestampMS();
   if(print_execute_duration_)
     RCLCPP_INFO(this->get_logger(), "execute duration %d ms", now_time - last_time);
+
+  if(receive_action_goal_)
+  {
+    last_time = now_time;
+    return;
+  }
 
   if(has_reached_goal() && cmd_mode_ != STOP)
   {
@@ -160,7 +288,13 @@ void TurtlesimController::handle_turtle_control_mode_service(
 //判断是否到达目标点
 bool TurtlesimController::has_reached_goal()
 {
-  return fabsf(turtlesim_pose_->x - goal_.x) < 0.1 && fabsf(turtlesim_pose_->y - goal_.y) < 0.1 && fabsf(turtlesim_pose_->theta - goal_.theta) < 0.01;
+  return fabsf(turtlesim_pose_->x - goal_.x) < 0.1 && fabsf(turtlesim_pose_->y - goal_.y) < 0.1 && fabsf(turtlesim_pose_->theta - goal_.theta) < 0.05;
+}
+
+//判断是否到达特定点
+bool TurtlesimController::has_reached_point(double x, double y)
+{
+  return fabsf(turtlesim_pose_->x - x) < 0.1 && fabsf(turtlesim_pose_->y - y) < 0.1;
 }
 
 //linear -> x轴线速度

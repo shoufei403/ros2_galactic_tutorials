@@ -4,5 +4,5 @@ turtlesim_controller:
     use_sim_time: True
     execute_frequency: 50
     walk_distance: 2.0
-    print_execute_duration: True
+    print_execute_duration: False
     show_str: "hello world"
