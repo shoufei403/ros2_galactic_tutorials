@@ -1,0 +1,8 @@
+turtlesim_controller:
+  ros__parameters:
+    odom_topic: /odom
+    use_sim_time: True
+    execute_frequency: 50
+    walk_distance: 2.0
+    print_execute_duration: True
+    show_str: "hello world"

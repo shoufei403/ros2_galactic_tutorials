@@ -32,3 +32,9 @@ ros2 run turtlesim_controller turtlesim_controller_client 1
 ```
 ros2 run turtlesim_controller turtlesim_controller_client 2
 ```
+
+### 以加载参数文件的形式运行
+```
+ros2 run turtlesim_controller turtlesim_controller_node --ros-args --params-file /home/kevin/galactic_ws/src/tn_ros2_tutorials/turtlesim_controller/params/turtlesim_controller.yaml
+```
+参数文件的路径需要改成自己的

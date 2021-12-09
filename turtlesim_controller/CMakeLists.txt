@@ -13,7 +13,12 @@ find_package(geometry_msgs REQUIRED)
 find_package(turtlesim REQUIRED)
 find_package(tutorial_interfaces REQUIRED)
 
-add_executable(turtlesim_controller_node src/turtlesim_controller_node.cpp)
+add_executable(turtlesim_controller_node 
+  src/turtlesim_controller_node.cpp
+  src/main.cpp
+)
+
+
 target_include_directories(turtlesim_controller_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -35,6 +40,11 @@ install(TARGETS
   turtlesim_controller_node
   turtlesim_controller_client
   DESTINATION lib/${PROJECT_NAME})
+
+install(
+  DIRECTORY launch params
+  DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

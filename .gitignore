@@ -1,0 +1,14 @@
+*~
+
+/build
+/*kdev*
+/bin/x86_64/*.log
+/bin/x86_64/chassis_svc
+/bin/aarch64/chassis_svc
+/bin/aarch64/*.log
+.vscode/
+.idea/
+lib/aarch64/libchassis.so
+*.orig
+lib/
+log/
