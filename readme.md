@@ -16,6 +16,8 @@ tutorial_interfaces 是接口定义的示例代码。
 
 turtlesim_controller 是作业代码。后面会随着课程不断完善。大家有实现新的功能可以提PR。
 
+geometry_tutorials 是tf2是示例代码
+
 ## 编译
 
 在用户工作空间的src目录下克隆代码：
@@ -69,4 +71,5 @@ demos
 ```
 https://ghproxy.com/https://github.com/ros2/demos.git
 ```
+
 

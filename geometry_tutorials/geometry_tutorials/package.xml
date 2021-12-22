@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>geometry_tutorials</name>
+  <version>0.3.4</version>
+  <description>Metapackage of geometry tutorials ROS.</description>
+  <maintainer email="alejandro@openrobotics.org">Alejandro Hernández Cordero</maintainer>
+  <maintainer email="audrow@openrobotics.org">Audrow Nash</maintainer>
+  <license>Apache License, Version 2.0</license>
+
+  <url type="website">http://www.ros.org/wiki/geometry_tutorials</url>
+  <url type="repository">https://github.com/ros/geometry_tutorials</url>
+  <url type="bugtracker">https://github.com/ros/geometry_tutorials/issues</url>
+
+  <author email="abilkasov@gmail.com">Shyngyskhan Abilkassov</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
