@@ -16,7 +16,7 @@
 
 #include <iostream>
 #include <memory>
-
+#include <cstdio>
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -34,8 +34,17 @@ Listener::Listener(const rclcpp::NodeOptions & options)
   auto callback =
     [this](const typename std_msgs::msg::String::SharedPtr msg) -> void
     {
-      RCLCPP_INFO(this->get_logger(), "I heard: [%s]", msg->data.c_str());
-      std::flush(std::cout);
+      // RCLCPP_INFO(this->get_logger(), 
+      //   "I heard: [%s] and address: 0x%" , msg->data.c_str(), reinterpret_cast<std::uintptr_t>(msg.get()));
+
+      // printf(
+      //   "Received message with value: %s, and address: 0x% \n", msg->data.c_str(),
+      //   reinterpret_cast<std::uintptr_t>(msg.get()));
+      // std::flush(std::cout);
+
+      std::cout << "Received message with value: " << msg->data << ", and address: " 
+                << reinterpret_cast<std::uintptr_t>(msg.get()) << std::endl;
+
     };
 
   // Create a subscription to the "chatter" topic which can be matched with one or more

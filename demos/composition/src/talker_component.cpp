@@ -44,8 +44,18 @@ void Talker::on_timer()
 {
   auto msg = std::make_unique<std_msgs::msg::String>();
   msg->data = "Hello World: " + std::to_string(++count_);
-  RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", msg->data.c_str());
-  std::flush(std::cout);
+
+  // RCLCPP_INFO(this->get_logger(), 
+  //   "Publishing: '%s' and address: 0x%", msg->data.c_str(), reinterpret_cast<std::uintptr_t>(msg.get()));
+
+  // printf(
+  //   "Published message with value: %s, and address: 0x% \r\n", msg->data.c_str(),
+  //   reinterpret_cast<std::uintptr_t>(msg.get()));
+
+  // std::flush(std::cout);
+
+  std::cout << "Published message with value: " << msg->data << ", and address: " 
+            << reinterpret_cast<std::uintptr_t>(msg.get()) << std::endl;
 
   // Put the message into a queue to be processed by the middleware.
   // This call is non-blocking.
