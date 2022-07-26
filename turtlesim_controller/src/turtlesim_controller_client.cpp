@@ -1,4 +1,3 @@
-
 #include <chrono>
 #include <cinttypes>
 #include <memory>
@@ -21,10 +20,9 @@ int main(int argc, char * argv[])
     RCLCPP_INFO(node->get_logger(), "waiting for service to appear...");
   }
   auto request = std::make_shared<TurtleCmdMode::Request>();
-  if(argc < 2)
+  if (argc < 2) {
     request->mode = 1;
-  else
-  {
+  } else {
     request->mode = static_cast<int8_t>(atoi(argv[1]));
     RCLCPP_INFO(node->get_logger(), "Receive control mode cmd %d", request->mode);
   }

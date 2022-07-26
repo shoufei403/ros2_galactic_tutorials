@@ -1,4 +1,3 @@
-
 #include <memory>
 
 #include "turtlesim_controller/turtlesim_controller_node.hpp"

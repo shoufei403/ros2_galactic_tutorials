@@ -1,4 +1,3 @@
-
 #include "turtlesim_controller/turtlesim_controller_node.hpp"
 
 using namespace std::chrono_literals;
@@ -9,16 +8,16 @@ using namespace std::chrono_literals;
 */
 inline static uint64_t getSystemTimestampUS()
 {
-    struct timespec ts;        
-    //该函数是用于获取特定 时钟的时间，常用如下4种时钟
-    /*
-    CLOCK_REALTIME                  //系统当前时间，从1970年1.1日算起
-    CLOCK_MONOTONIC                 //系统的启动后运行时间，不能被设置
-    CLOCK_PROCESS_CPUTIME_ID        //本进程运行时间
-    CLOCK_THREAD_CPUTIME_ID         //本线程运行时间            
-    */    
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)(ts.tv_sec * 1e6 + ts.tv_nsec * 0.001);
+  struct timespec ts;
+  // 该函数是用于获取特定 时钟的时间，常用如下4种时钟
+  /*
+  CLOCK_REALTIME                  //系统当前时间，从1970年1.1日算起
+  CLOCK_MONOTONIC                 //系统的启动后运行时间，不能被设置
+  CLOCK_PROCESS_CPUTIME_ID        //本进程运行时间
+  CLOCK_THREAD_CPUTIME_ID         //本线程运行时间
+  */
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint64_t)(ts.tv_sec * 1e6 + ts.tv_nsec * 0.001);
 }
 
 /*
@@ -26,9 +25,8 @@ inline static uint64_t getSystemTimestampUS()
 */
 static uint64_t getSystemTimestampMS()
 {
-    return getSystemTimestampUS() / 1000;
+  return getSystemTimestampUS() / 1000;
 }
-
 
 
 TurtlesimController::TurtlesimController()
@@ -48,12 +46,14 @@ TurtlesimController::TurtlesimController()
   print_execute_duration_ = get_parameter("print_execute_duration").as_bool();
   show_str_ = get_parameter("show_str").as_string();
 
-  RCLCPP_INFO(this->get_logger(), "execute_interval_ms: %d execute_frequency: %d \
+  RCLCPP_INFO(
+    this->get_logger(), "execute_interval_ms: %d execute_frequency: %d \
     Hz walk_distance: %.3f \
-    print_execute_duration: %d show_str: %s", 
-    execute_interval_ms, execute_frequency_, walk_distance_, print_execute_duration_, show_str_.c_str());
+    print_execute_duration: %d show_str: %s",
+    execute_interval_ms, execute_frequency_, walk_distance_, print_execute_duration_,
+    show_str_.c_str());
 
-  
+
   // Setup callback for changes to parameters.
   parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(
     this->get_node_base_interface(),
@@ -63,15 +63,18 @@ TurtlesimController::TurtlesimController()
 
   parameter_event_sub_ = parameters_client_->on_parameter_event(
     std::bind(&TurtlesimController::on_parameter_event_callback, this, std::placeholders::_1));
-    
+
 
   vel_cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("turtle1/cmd_vel", 1);
   turtlesim_pose_subscription_ = this->create_subscription<turtlesim::msg::Pose>(
-    "turtle1/pose", 1, std::bind(&TurtlesimController::turtlesim_pose_callback, this, std::placeholders::_1));
+    "turtle1/pose", 1,
+    std::bind(&TurtlesimController::turtlesim_pose_callback, this, std::placeholders::_1));
 
-  service_server_ = this->create_service<TurtleCmdMode>("change_turtle_control_mode", 
-    std::bind(&TurtlesimController::handle_turtle_control_mode_service, this, 
-    std::placeholders::_1, std::placeholders::_2));
+  service_server_ = this->create_service<TurtleCmdMode>(
+    "change_turtle_control_mode",
+    std::bind(
+      &TurtlesimController::handle_turtle_control_mode_service, this,
+      std::placeholders::_1, std::placeholders::_2));
 
   action_server_ = rclcpp_action::create_server<GoLine>(
     this->get_node_base_interface(),
@@ -79,7 +82,9 @@ TurtlesimController::TurtlesimController()
     this->get_node_logging_interface(),
     this->get_node_waitables_interface(),
     "turtle_go_line",
-    std::bind(&TurtlesimController::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+    std::bind(
+      &TurtlesimController::handle_goal, this, std::placeholders::_1,
+      std::placeholders::_2),
     std::bind(&TurtlesimController::handle_cancel, this, std::placeholders::_1),
     std::bind(&TurtlesimController::handle_accepted, this, std::placeholders::_1));
 
@@ -87,7 +92,7 @@ TurtlesimController::TurtlesimController()
   std::chrono::milliseconds interval(execute_interval_ms);
   timer_ = this->create_wall_timer(
     interval, std::bind(&TurtlesimController::timer_callback, this));
-    
+
 }
 
 
@@ -102,19 +107,20 @@ rclcpp_action::GoalResponse TurtlesimController::handle_goal(
     return rclcpp_action::GoalResponse::REJECT;
   }
   receive_action_goal_ = true;
-  goal_.theta = fmod(atan2(goal->goal_y-turtlesim_pose_->y, goal->goal_x-turtlesim_pose_->x), 2.0f * static_cast<float>(PI));
+  goal_.theta = fmod(
+    atan2(
+      goal->goal_y - turtlesim_pose_->y,
+      goal->goal_x - turtlesim_pose_->x), 2.0f * static_cast<float>(PI));
   // wrap goal_.theta to [-pi, pi)
-  if (goal_.theta >= static_cast<float>(PI)) goal_.theta -= 2.0f * static_cast<float>(PI);
-  RCLCPP_INFO(this->get_logger(), "current theta %f goal theta %f", turtlesim_pose_->theta, goal_.theta);
-  if(fabsl(goal_.theta - turtlesim_pose_->theta) < 0.01)
-  {
+  if (goal_.theta >= static_cast<float>(PI)) {goal_.theta -= 2.0f * static_cast<float>(PI);}
+  RCLCPP_INFO(
+    this->get_logger(), "current theta %f goal theta %f", turtlesim_pose_->theta, goal_.theta);
+  if (fabsl(goal_.theta - turtlesim_pose_->theta) < 0.01) {
     goal_.x = goal->goal_x;
     goal_.y = goal->goal_y;
     goal_.theta = turtlesim_pose_->theta;
     cmd_mode_ = FORWARD;
-  }
-  else
-  {
+  } else {
     //set rotate angle
     goal_.x = turtlesim_pose_->x;
     goal_.y = turtlesim_pose_->y;
@@ -153,33 +159,24 @@ void TurtlesimController::execute(const std::shared_ptr<GoalHandleGoLine> goal_h
       return;
     }
 
-    if(cmd_mode_ == ROTATE)
-    {
-      if(has_reached_goal())
-      {
+    if (cmd_mode_ == ROTATE) {
+      if (has_reached_goal()) {
         goal_.x = goal->goal_x;
         goal_.y = goal->goal_y;
         goal_.theta = turtlesim_pose_->theta;
         cmd_mode_ = FORWARD;
-      }
-      else
-      {
+      } else {
         rotate();
       }
-    }
-    else if(cmd_mode_ == FORWARD)
-    {
-      if(has_reached_point(goal->goal_x, goal->goal_y))// Check if goal is done
-      {
+    } else if (cmd_mode_ == FORWARD) {
+      if (has_reached_point(goal->goal_x, goal->goal_y)) {// Check if goal is done
         result->str = "Goal Succeeded";
         receive_action_goal_ = false;
         goal_handle->succeed(result);
         RCLCPP_INFO(this->get_logger(), "Goal Succeeded");
         stop_turtle();
         break;
-      }
-      else
-      {
+      } else {
         move_forward();
       }
     }
@@ -206,41 +203,39 @@ void TurtlesimController::timer_callback()
 {
   static uint64_t last_time;
   uint64_t now_time = getSystemTimestampMS();
-  if(print_execute_duration_)
+  if (print_execute_duration_) {
     RCLCPP_INFO(this->get_logger(), "execute duration %d ms", now_time - last_time);
+  }
 
-  if(receive_action_goal_)
-  {
+  if (receive_action_goal_) {
     last_time = now_time;
     return;
   }
 
-  if(has_reached_goal() && cmd_mode_ != STOP)
-  {
+  if (has_reached_goal() && cmd_mode_ != STOP) {
     cmd_mode_ = STOP;
     stop_turtle();
     RCLCPP_INFO(this->get_logger(), "finish task and switch to stop state.");
     return;
   }
 
-  switch (cmd_mode_)
-  {
-  case FORWARD:
-    move_forward();
-    break;
-  case ROTATE:
-    rotate();
-    break;
-  
-  default:
-    cmd_mode_ = STOP;
-    stop_turtle();
-    break;
+  switch (cmd_mode_) {
+    case FORWARD:
+      move_forward();
+      break;
+    case ROTATE:
+      rotate();
+      break;
+
+    default:
+      cmd_mode_ = STOP;
+      stop_turtle();
+      break;
   }
   last_time = now_time;
 }
 
-void TurtlesimController::turtlesim_pose_callback(const turtlesim::msg::Pose::SharedPtr msg) 
+void TurtlesimController::turtlesim_pose_callback(const turtlesim::msg::Pose::SharedPtr msg)
 {
   turtlesim_pose_ = msg;
   // RCLCPP_INFO(this->get_logger(), "got turtlesim pose {%f, %f, %f}", msg->x, msg->y, msg->theta);
@@ -254,30 +249,25 @@ void TurtlesimController::handle_turtle_control_mode_service(
 //   const tutorial_interfaces::srv::TurtleCmdMode::Request::SharedPtr request,
 //   tutorial_interfaces::srv::TurtleCmdMode::Response::SharedPtr response)//这两种写法都可以
 {
-  if(request->mode >= MAX_CONTROL_MODE)
-  {
+  if (request->mode >= MAX_CONTROL_MODE) {
     RCLCPP_WARN(this->get_logger(), "control mode is out of range.mode is %d", request->mode);
     return;
   }
 
-  if(request->mode == FORWARD)
-  {
+  if (request->mode == FORWARD) {
     goal_.x = cos(turtlesim_pose_->theta) * walk_distance_ + turtlesim_pose_->x;
     goal_.y = sin(turtlesim_pose_->theta) * walk_distance_ + turtlesim_pose_->y;
     goal_.theta = turtlesim_pose_->theta;
     cmd_mode_ = FORWARD;
-  }
-  else if(request->mode == ROTATE)//向左旋转90度
-  {
+  } else if (request->mode == ROTATE) {//向左旋转90度
     goal_.x = turtlesim_pose_->x;
     goal_.y = turtlesim_pose_->y;
-    goal_.theta = fmod(turtlesim_pose_->theta + static_cast<float>(PI) / 2.0f, 2.0f * static_cast<float>(PI));
+    goal_.theta =
+      fmod(turtlesim_pose_->theta + static_cast<float>(PI) / 2.0f, 2.0f * static_cast<float>(PI));
     // wrap goal_.theta to [-pi, pi)
-    if (goal_.theta >= static_cast<float>(PI)) goal_.theta -= 2.0f * static_cast<float>(PI);
+    if (goal_.theta >= static_cast<float>(PI)) {goal_.theta -= 2.0f * static_cast<float>(PI);}
     cmd_mode_ = ROTATE;
-  }
-  else
-  {
+  } else {
     cmd_mode_ = STOP;
     stop_turtle();
   }
@@ -288,7 +278,8 @@ void TurtlesimController::handle_turtle_control_mode_service(
 //判断是否到达目标点
 bool TurtlesimController::has_reached_goal()
 {
-  return fabsf(turtlesim_pose_->x - goal_.x) < 0.1 && fabsf(turtlesim_pose_->y - goal_.y) < 0.1 && fabsf(turtlesim_pose_->theta - goal_.theta) < 0.05;
+  return fabsf(turtlesim_pose_->x - goal_.x) < 0.1 && fabsf(turtlesim_pose_->y - goal_.y) < 0.1 &&
+         fabsf(turtlesim_pose_->theta - goal_.theta) < 0.05;
 }
 
 //判断是否到达特定点
@@ -324,10 +315,10 @@ void TurtlesimController::rotate(void)
 
 
 void TurtlesimController::on_parameter_event_callback(
-    const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
+  const rcl_interfaces::msg::ParameterEvent::SharedPtr event)
 {
   std::lock_guard<std::mutex> l(config_mutex_);
-  
+
   for (auto & changed_parameter : event->changed_parameters) {
     const auto & type = changed_parameter.value.type;
     const auto & name = changed_parameter.name;
@@ -339,30 +330,22 @@ void TurtlesimController::on_parameter_event_callback(
         walk_distance_ = value.double_value;
         RCLCPP_INFO(this->get_logger(), "update walk_distance: %.3f ", walk_distance_);
       }
-    }
-    else if(type == rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER)
-    {
+    } else if (type == rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER) {
       if (name == "execute_frequency") {
         execute_frequency_ = value.integer_value;//不会改变定时器执行频率，仅作为演示用
         RCLCPP_INFO(this->get_logger(), "update execute_frequency: %d ", execute_frequency_);
       }
-    }
-    else if (type == rcl_interfaces::msg::ParameterType::PARAMETER_BOOL)
-    {
+    } else if (type == rcl_interfaces::msg::ParameterType::PARAMETER_BOOL) {
       if (name == "print_execute_duration") {
         print_execute_duration_ = value.bool_value;
-        RCLCPP_INFO(this->get_logger(), "update print_execute_duration: %d ",print_execute_duration_);
+        RCLCPP_INFO(
+          this->get_logger(), "update print_execute_duration: %d ", print_execute_duration_);
       }
-    }
-    else if (type == rcl_interfaces::msg::ParameterType::PARAMETER_STRING)
-    {
+    } else if (type == rcl_interfaces::msg::ParameterType::PARAMETER_STRING) {
       if (name == "show_str") {
         show_str_ = value.string_value;
-        RCLCPP_INFO(this->get_logger(), "update show_str: %s ",show_str_.c_str());
+        RCLCPP_INFO(this->get_logger(), "update show_str: %s ", show_str_.c_str());
       }
     }
   }
 }
-
-
-

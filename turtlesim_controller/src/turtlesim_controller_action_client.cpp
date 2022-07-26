@@ -1,4 +1,3 @@
-
 #include <chrono>
 #include <cinttypes>
 #include <functional>
@@ -42,7 +41,7 @@ public:
     using namespace std::placeholders;
 
     this->timer_->cancel();
-    
+
 
     this->goal_done_ = false;
 
